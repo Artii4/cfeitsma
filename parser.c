@@ -11,6 +11,11 @@
 static struct parser_result parser_result_create(struct ast *a);
 static struct parser_result parser_result_create_error(char *e);
 
+static struct parser_result parser_error(struct parser *p, char const *want);
+static struct parser_result parser_error_lookahead(struct parser *p);
+static struct parser_result parser_error_type(struct parser *p,
+					      enum token_type t);
+
 static void parser_consume(struct parser *p);
 static bool parser_expect(struct parser *p, enum token_type type);
 
