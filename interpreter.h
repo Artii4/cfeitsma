@@ -6,7 +6,7 @@
 struct interpreter {
 	FILE *output;
 	struct array *variables;
-	bool error;
+	char *error;
 };
 
 struct interpreter interpreter_create(FILE *output);

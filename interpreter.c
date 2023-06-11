@@ -22,7 +22,7 @@ struct interpreter interpreter_create(FILE *output)
 	return (struct interpreter) {
 		.output = output,
 		.variables = array_create(sizeof(struct variable)),
-		.error = false
+		.error = NULL
 	};
 }
 
@@ -32,11 +32,13 @@ void interpreter_destroy(struct interpreter *self)
 		free(((struct variable *)self->variables->elts)[i].name);
 
 	array_destroy(self->variables);
+	free(self->error);
 }
 
 void interpreter_interpret(struct interpreter *self, struct ast *ast)
 {
-	self->error = false;
+	free(self->error);
+	self->error = NULL;
 	for (size_t i = 0; i < ast->children->nelts; i++) {
 		struct ast **c = ast->children->elts;
 		interpreter_statement(self, c[i]);
@@ -115,6 +117,6 @@ static double interpreter_name(struct interpreter *self, struct ast *ast)
 			return vars[i].value;
 	}
 
-	self->error = true;
+	asprintf(&self->error, "variable named \"%s\" doesn't exist", ast->name_value);
 	return -1;
 }

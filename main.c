@@ -30,7 +30,7 @@ int main(void)
 
 		interpreter_interpret(&i, res.ast);
 		if (i.error)
-			puts("parser error");
+			puts(i.error);
 
 		free(res.error);
 		ast_destroy(res.ast);
