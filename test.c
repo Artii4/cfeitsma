@@ -52,6 +52,7 @@ int main(void)
 	assert(parser_errs("laat pi @ zijn;"));
 	assert(parser_errs("print 2 + 2 uit"));
 	assert(parser_errs("laat tau pi * pi * zijn;"));
+	assert(parser_errs("laat tau pi * zijn zijn;"));
 
 	assert(parser_gives("", "program"));
 	assert(parser_gives("print pi uit;", "program (print (\"pi\"))"));

@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define MAX_NAME_LENGTH 100
+
 static void lexer_consume(struct lexer *l);
 static char lexer_peek(struct lexer *l);
 static struct token lexer_name(struct lexer *l);
@@ -82,11 +84,10 @@ static char lexer_peek(struct lexer *l)
 
 static struct token lexer_name(struct lexer *l)
 {
-	int const bufsize = 100;
-	char buf[bufsize + 1] = { 0 };
+	char buf[MAX_NAME_LENGTH + 1] = { 0 };
 
 	for (int i = 0; isalpha(lexer_peek(l)); i++) {
-		if (i >= bufsize) {
+		if (i >= MAX_NAME_LENGTH) {
 			char *err;
 			asprintf(&err,
 				 "Name starting with \"%.10s\" is too long!",
