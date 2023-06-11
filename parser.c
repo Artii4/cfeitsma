@@ -155,7 +155,6 @@ static struct parser_result parser_assignment(struct parser *p)
 	if (p->lookahead.error || p->lookahead.type != token_name)
 		return parser_error_type(p, token_name);
 	char *assignee = strdup(p->lookahead.name_value);
-
 	parser_consume(p);
 
 	struct parser_result expr = parser_expression(p);
@@ -175,6 +174,7 @@ static struct parser_result parser_assignment(struct parser *p)
 	ast_add_child(ast, expr.ast);
 
 	return parser_result_create(ast);
+
 }
 
 static struct parser_result parser_print(struct parser *p)
@@ -255,7 +255,6 @@ static struct parser_result parser_mul(struct parser *p)
 		parser_consume(p);
 
 		struct parser_result value = parser_value(p);
-		struct parser_result r;
 		if (value.error) {
 			ast_destroy(result.ast);
 			return value;
