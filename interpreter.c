@@ -22,7 +22,8 @@ struct interpreter interpreter_create(FILE *output)
 	return (struct interpreter) {
 		.output = output,
 		.variables = array_create(sizeof(struct variable)),
-		.error = NULL
+		.error = NULL,
+		.last_var = -1
 	};
 }
 
@@ -70,22 +71,52 @@ static void interpreter_print(struct interpreter *self, struct ast *ast)
 static void interpreter_assign(struct interpreter *self, struct ast *ast)
 {
 	struct ast **c = ast->children->elts;
-	char *name = c[0]->name_value;
+	char *name;
+
+	if (c[0]->type == ast_name) {
+		name = c[0]->name_value;
+	} else if (c[0]->type == ast_het) {
+		if (self->last_var < 0) {
+			self->error = strdup("\"het\" is invalid here");
+			return;
+		}
+		struct variable *vars = self->variables->elts;
+		name = vars[self->last_var].name;
+	}
+
 	double value = interpreter_expression(self, c[1]);
 
 	if (self->error)
 		return;
 
+	struct variable *vars = self->variables->elts;
+
+	for (size_t i = 0; i < self->variables->nelts; i++) {
+		if (strcmp(vars[i].name, name) == 0) {
+			vars[i].value = value;
+			self->last_var = i;
+		}
+	}
+
+	self->last_var = self->variables->nelts;
 	*(struct variable *)array_push(self->variables) =
 	    (struct variable) { strdup(name), value };
 }
 
 static double interpreter_expression(struct interpreter *self, struct ast *ast)
 {
-	if (ast->type == ast_name)
+	if (ast->type == ast_name) {
 		return interpreter_name(self, ast);
-	else if (ast->type == ast_number)
+	} else if (ast->type == ast_number) {
 		return ast->number_value;
+	} else if (ast->type == ast_het) {
+		if (self->last_var < 0) {
+			self->error = strdup("\"het\" is invalid here");
+			return 0;
+		}
+		struct variable *vars = self->variables->elts;
+		return vars[self->last_var].value;
+	}
 
 	struct ast **children = ast->children->elts;
 	double left = interpreter_expression(self, children[0]);
@@ -117,6 +148,7 @@ static double interpreter_name(struct interpreter *self, struct ast *ast)
 			return vars[i].value;
 	}
 
-	asprintf(&self->error, "variable named \"%s\" doesn't exist", ast->name_value);
+	asprintf(&self->error, "variable named \"%s\" doesn't exist",
+		 ast->name_value);
 	return -1;
 }

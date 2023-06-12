@@ -152,8 +152,11 @@ static struct parser_result parser_assignment(struct parser *p)
 	if (!parser_expect(p, token_laat))
 		return parser_error_type(p, token_laat);
 
-	if (p->lookahead.error || p->lookahead.type != token_name)
-		return parser_error_type(p, token_name);
+	if (p->lookahead.error || (p->lookahead.type != token_name
+				   && p->lookahead.type != token_het)) {
+		return parser_error(p, strdup("name or het"));
+	}
+
 	char *assignee = strdup(p->lookahead.name_value);
 	parser_consume(p);
 
