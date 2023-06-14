@@ -22,9 +22,9 @@ int main(void)
 		struct parser parser = parser_create(line);
 		struct parser_result res = parser_parse(&parser);
 
-
 		if (res.error) {
 			puts(res.error);
+			free(res.error);
 			continue;
 		}
 
@@ -32,7 +32,6 @@ int main(void)
 		if (i.error)
 			puts(i.error);
 
-		free(res.error);
 		ast_destroy(res.ast);
 		parser_destroy(&parser);
 	}
