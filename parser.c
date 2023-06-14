@@ -258,8 +258,6 @@ static struct parser_result parser_expression(struct parser *self,
 
 	for (;;) {
 		struct infix_bp bp = get_infix_bp(self->lookahead.type);
-		if (bp.left == -1)
-			break;
 
 		if (bp.left < min_bp)
 			break;
