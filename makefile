@@ -1,10 +1,10 @@
 CFLAGS = -std=c11 -Wall -Wextra -pedantic -g
 
 main: main.c token.c lexer.c array.c ast.c interpreter.c parser.c
-	clang $^ -o main $(CFLAGS)
+	clang $^ -o $@ $(CFLAGS)
 
 test: test.c token.c lexer.c array.c ast.c parser.c
-	clang $^ -o test $(CFLAGS)
+	clang $^ -o $@ $(CFLAGS)
 
 lexer.c: lexer.h
 interpreter.h array.c: array.h ast.h
