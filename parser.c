@@ -8,22 +8,26 @@
 #include <stdio.h>
 #include <string.h>
 
+struct infix_bp {
+	int left;
+	int right;
+};
+
 static struct parser_result parser_result_create(struct ast *a);
 static struct parser_result parser_result_create_error(char *e);
+static struct parser_result parser_error(struct parser *self, char const *want);
+static struct parser_result parser_error_lookahead(struct parser *self);
+static struct parser_result parser_error_type(struct parser *self, enum token_type t);
 
-static struct parser_result parser_error(struct parser *p, char const *want);
-static struct parser_result parser_error_lookahead(struct parser *p);
-static struct parser_result parser_error_type(struct parser *p,
-					      enum token_type t);
+static void parser_consume(struct parser *self);
+static bool parser_expect(struct parser *self, enum token_type type);
 
-static void parser_consume(struct parser *p);
-static bool parser_expect(struct parser *p, enum token_type type);
-
-static struct parser_result parser_program(struct parser *p);
-static struct parser_result parser_statement(struct parser *p);
-static struct parser_result parser_assignment(struct parser *p);
-static struct parser_result parser_print(struct parser *p);
+static struct parser_result parser_program(struct parser *self);
+static struct parser_result parser_statement(struct parser *self);
+static struct parser_result parser_assignment(struct parser *self);
+static struct parser_result parser_print(struct parser *self);
 static struct parser_result parser_expression(struct parser *self, int min_bp);
+static struct infix_bp get_infix_bp(enum token_type t);
 
 struct parser parser_create(char *input)
 {
@@ -33,9 +37,9 @@ struct parser parser_create(char *input)
 	return p;
 }
 
-void parser_destroy(struct parser *p)
+void parser_destroy(struct parser *self)
 {
-	token_destroy(&p->lookahead);
+	token_destroy(&self->lookahead);
 }
 
 static struct parser_result parser_result_create(struct ast *a)
@@ -52,71 +56,71 @@ static struct parser_result parser_result_create_error(char *e)
 	};
 }
 
-static struct parser_result parser_error_lookahead(struct parser *p)
+static struct parser_result parser_error_lookahead(struct parser *self)
 {
-	return parser_result_create_error(strdup(p->lookahead.error));
+	return parser_result_create_error(strdup(self->lookahead.error));
 }
 
-static struct parser_result parser_error(struct parser *p, char const *want)
+static struct parser_result parser_error(struct parser *self, char const *want)
 {
-	if (p->lookahead.error)
-		return parser_error_lookahead(p);
+	if (self->lookahead.error)
+		return parser_error_lookahead(self);
 
 	char *error;
-	char *tokenstring = token_to_string(p->lookahead);
+	char *tokenstring = token_to_string(self->lookahead);
 	asprintf(&error, "Want %s, got %s.", want, tokenstring);
 	free(tokenstring);
 	return parser_result_create_error(error);
 }
 
-static struct parser_result parser_error_type(struct parser *p,
+static struct parser_result parser_error_type(struct parser *self,
 					      enum token_type t)
 {
-	return parser_error(p, token_type_to_string(t));
+	return parser_error(self, token_type_to_string(t));
 }
 
-static void parser_consume(struct parser *p)
+static void parser_consume(struct parser *self)
 {
-	token_destroy(&p->lookahead);
-	p->lookahead = lexer_next_token(&p->input);
+	token_destroy(&self->lookahead);
+	self->lookahead = lexer_next_token(&self->input);
 }
 
-static bool parser_expect(struct parser *p, enum token_type t)
+static bool parser_expect(struct parser *self, enum token_type t)
 {
-	if (p->lookahead.error)
+	if (self->lookahead.error)
 		return false;
-	if (p->lookahead.type != t)
+	if (self->lookahead.type != t)
 		return false;
 
-	parser_consume(p);
+	parser_consume(self);
 	return true;
 }
 
-static bool parser_expect_peek(struct parser *p, enum token_type t)
+static bool parser_expect_peek(struct parser *self, enum token_type t)
 {
-	return p->lookahead.error == NULL && p->lookahead.type == t;
+	return self->lookahead.error == NULL && self->lookahead.type == t;
 }
 
-struct parser_result parser_parse(struct parser *p)
+struct parser_result parser_parse(struct parser *self)
 {
-	struct parser_result result = parser_program(p);
+	struct parser_result result = parser_program(self);
 	if (result.error)
 		return result;
 
-	if (!parser_expect(p, token_end)) {
+	if (!parser_expect(self, token_end)) {
 		free(result.ast);
-		return parser_error_type(p, token_end);
+		return parser_error_type(self, token_end);
 	}
 
 	return result;
 }
 
-static struct parser_result parser_program(struct parser *p)
+static struct parser_result parser_program(struct parser *self)
 {
 	struct ast *a = ast_create(ast_program);
 
-	while (p->lookahead.type != token_end) {
-		struct parser_result stmt = parser_statement(p);
+	while (self->lookahead.type != token_end) {
+		struct parser_result stmt = parser_statement(self);
 		if (stmt.error) {
 			ast_destroy(a);
 			return stmt;
@@ -128,51 +132,51 @@ static struct parser_result parser_program(struct parser *p)
 	return parser_result_create(a);
 }
 
-static struct parser_result parser_statement(struct parser *p)
+static struct parser_result parser_statement(struct parser *self)
 {
 	struct parser_result result;
 
-	if (p->lookahead.type == token_laat)
-		result = parser_assignment(p);
-	else if (p->lookahead.type == token_print)
-		result = parser_print(p);
+	if (self->lookahead.type == token_laat)
+		result = parser_assignment(self);
+	else if (self->lookahead.type == token_print)
+		result = parser_print(self);
 	else
-		return parser_error(p, "assignment or print");
+		return parser_error(self, "assignment or print");
 
 	if (result.error)
 		return result;
 
-	if (!parser_expect(p, token_semicolon)) {
+	if (!parser_expect(self, token_semicolon)) {
 		ast_destroy(result.ast);
-		return parser_error_type(p, token_semicolon);
+		return parser_error_type(self, token_semicolon);
 	}
 
 	return result;
 }
 
-static struct parser_result parser_assignment(struct parser *p)
+static struct parser_result parser_assignment(struct parser *self)
 {
-	if (!parser_expect(p, token_laat))
-		return parser_error_type(p, token_laat);
+	if (!parser_expect(self, token_laat))
+		return parser_error_type(self, token_laat);
 
-	if (p->lookahead.error || (p->lookahead.type != token_name
-				   && p->lookahead.type != token_het)) {
-		return parser_error(p, "name or het");
+	if (self->lookahead.error || (self->lookahead.type != token_name
+				   && self->lookahead.type != token_het)) {
+		return parser_error(self, "name or het");
 	}
 
-	char *assignee = strdup(p->lookahead.name_value);
-	parser_consume(p);
+	char *assignee = strdup(self->lookahead.name_value);
+	parser_consume(self);
 
-	struct parser_result expr = parser_expression(p, 0);
+	struct parser_result expr = parser_expression(self, 0);
 	if (expr.error) {
 		free(assignee);
 		return expr;
 	}
 
-	if (!parser_expect(p, token_zijn)) {
+	if (!parser_expect(self, token_zijn)) {
 		free(assignee);
 		ast_destroy(expr.ast);
-		return parser_error_type(p, token_zijn);
+		return parser_error_type(self, token_zijn);
 	}
 
 	struct ast *ast = ast_create(ast_assign);
@@ -183,17 +187,17 @@ static struct parser_result parser_assignment(struct parser *p)
 
 }
 
-static struct parser_result parser_print(struct parser *p)
+static struct parser_result parser_print(struct parser *self)
 {
-	if (!parser_expect(p, token_print))
-		return parser_error_type(p, token_print);
+	if (!parser_expect(self, token_print))
+		return parser_error_type(self, token_print);
 
-	struct parser_result expr = parser_expression(p, 0);
+	struct parser_result expr = parser_expression(self, 0);
 	if (expr.error)
 		return expr;
 
-	if (!parser_expect(p, token_uit))
-		return parser_error_type(p, token_uit);
+	if (!parser_expect(self, token_uit))
+		return parser_error_type(self, token_uit);
 
 	struct ast *ast = ast_create(ast_print);
 	ast_add_child(ast, expr.ast);
@@ -201,12 +205,7 @@ static struct parser_result parser_print(struct parser *p)
 	return parser_result_create(ast);
 }
 
-struct infix_bp {
-	int left;
-	int right;
-};
-
-struct infix_bp get_infix_bp(enum token_type t)
+static struct infix_bp get_infix_bp(enum token_type t)
 {
 	switch (t) {
 	case token_plus:
