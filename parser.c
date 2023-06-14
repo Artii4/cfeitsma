@@ -23,9 +23,7 @@ static struct parser_result parser_program(struct parser *p);
 static struct parser_result parser_statement(struct parser *p);
 static struct parser_result parser_assignment(struct parser *p);
 static struct parser_result parser_print(struct parser *p);
-static struct parser_result parser_expression(struct parser *p);
-static struct parser_result parser_mul(struct parser *p);
-static struct parser_result parser_value(struct parser *p);
+static struct parser_result parser_expression(struct parser *self, int min_bp);
 
 struct parser parser_create(char *input)
 {
@@ -94,6 +92,11 @@ static bool parser_expect(struct parser *p, enum token_type t)
 	return true;
 }
 
+static bool parser_expect_peek(struct parser *p, enum token_type t)
+{
+	return p->lookahead.error == NULL && p->lookahead.type == t;
+}
+
 struct parser_result parser_parse(struct parser *p)
 {
 	struct parser_result result = parser_program(p);
@@ -160,7 +163,7 @@ static struct parser_result parser_assignment(struct parser *p)
 	char *assignee = strdup(p->lookahead.name_value);
 	parser_consume(p);
 
-	struct parser_result expr = parser_expression(p);
+	struct parser_result expr = parser_expression(p, 0);
 	if (expr.error) {
 		free(assignee);
 		return expr;
@@ -185,7 +188,7 @@ static struct parser_result parser_print(struct parser *p)
 	if (!parser_expect(p, token_print))
 		return parser_error_type(p, token_print);
 
-	struct parser_result expr = parser_expression(p);
+	struct parser_result expr = parser_expression(p, 0);
 	if (expr.error)
 		return expr;
 
@@ -198,112 +201,93 @@ static struct parser_result parser_print(struct parser *p)
 	return parser_result_create(ast);
 }
 
-static struct parser_result parser_expression(struct parser *p)
+struct infix_bp {
+	int left;
+	int right;
+};
+
+struct infix_bp get_infix_bp(enum token_type t)
 {
-	struct parser_result result = parser_mul(p);
-	if (result.error)
-		return result;
-
-	for (;;) {
-		if (p->lookahead.error) {
-			ast_destroy(result.ast);
-			return parser_error_lookahead(p);
-		}
-
-		struct ast *new_parent;
-		if (p->lookahead.type == token_plus)
-			new_parent = ast_create(ast_plus);
-		else if (p->lookahead.type == token_minus)
-			new_parent = ast_create(ast_minus);
-		else
-			break;
-
-		parser_consume(p);
-
-		struct parser_result mul = parser_mul(p);
-		if (mul.error) {
-			ast_destroy(result.ast);
-			return mul;
-		}
-
-		ast_add_child(new_parent, result.ast);
-		ast_add_child(new_parent, mul.ast);
-
-		result.ast = new_parent;
+	switch (t) {
+	case token_plus:
+	case token_minus:
+		return (struct infix_bp) { 1, 2 };
+	case token_star:
+	case token_slash:
+		return (struct infix_bp) { 3, 4 };
+	default:
+		return (struct infix_bp) { -1, -1 };
 	}
-
-	return result;
 }
 
-static struct parser_result parser_mul(struct parser *p)
+static struct parser_result parser_expression(struct parser *self,
+						    int min_bp)
 {
-	struct parser_result result = parser_value(p);
-	if (result.error)
-		return result;
+	struct ast *lhs;
 
-	for (;;) {
-		if (p->lookahead.error) {
-			ast_destroy(result.ast);
-			return parser_error_lookahead(p);
-		}
+	if (self->lookahead.error)
+		return parser_error_lookahead(self);
 
-		struct ast *new_parent;
-		if (p->lookahead.type == token_star)
-			new_parent = ast_create(ast_star);
-		else if (p->lookahead.type == token_slash)
-			new_parent = ast_create(ast_slash);
-		else
-			break;
-
-		parser_consume(p);
-
-		struct parser_result value = parser_value(p);
-		if (value.error) {
-			ast_destroy(result.ast);
-			return value;
-		}
-
-		ast_add_child(new_parent, result.ast);
-		ast_add_child(new_parent, value.ast);
-
-		result.ast = new_parent;
-	}
-
-	return result;
-}
-
-static struct parser_result parser_value(struct parser *p)
-{
-	if (p->lookahead.error)
-		return parser_error_lookahead(p);
-
-	struct ast *result;
-
-	switch (p->lookahead.type) {
+	switch (self->lookahead.type) {
 	case token_number:
-		result = ast_create_number(p->lookahead.number_value);
+		lhs = ast_create_number(self->lookahead.number_value);
 		break;
 	case token_name:
-		result = ast_create_name(strdup(p->lookahead.name_value));
+		lhs = ast_create_name(strdup(self->lookahead.name_value));
 		break;
 	case token_het:
-		result = ast_create(ast_het);
+		lhs = ast_create(ast_het);
 		break;
-	case token_lparen:
-		parser_consume(p);
+	case token_lparen: {
+		parser_consume(self);
+		struct parser_result l = parser_expression(self, 0);
+		if (l.error)
+			return l;
 
-		struct parser_result expr = parser_expression(p);
-		if (expr.error)
-			return expr;
+		lhs = l.ast;
 
-		if (!parser_expect(p, token_rparen))
-			return parser_error_type(p, token_rparen);
+		if (!parser_expect_peek(self, token_rparen))
+			return parser_error_type(self, token_rparen);
 
-		return parser_result_create(expr.ast);
+		break;
+	}
 	default:
-		return parser_error(p, "number, name, het, or(");
+		return parser_error(self, "number, name, het, or (");
 	}
 
-	parser_consume(p);
-	return parser_result_create(result);
+	parser_consume(self);
+
+	for (;;) {
+		struct infix_bp bp = get_infix_bp(self->lookahead.type);
+		if (bp.left == -1)
+			break;
+
+		if (bp.left < min_bp)
+			break;
+
+		struct ast *op;
+		if (self->lookahead.type == token_plus)
+			op = ast_create(ast_plus);
+		else if (self->lookahead.type == token_minus)
+			op = ast_create(ast_minus);
+		else if (self->lookahead.type == token_star)
+			op = ast_create(ast_star);
+		else if (self->lookahead.type == token_slash)
+			op = ast_create(ast_slash);
+
+		parser_consume(self);
+
+		struct parser_result rhs = parser_expression(self, bp.right);
+		if (rhs.error) {
+			ast_destroy(lhs);
+			return rhs;
+		}
+
+		ast_add_child(op, lhs);
+		ast_add_child(op, rhs.ast);
+
+		lhs = op;
+	}
+
+	return parser_result_create(lhs);
 }
