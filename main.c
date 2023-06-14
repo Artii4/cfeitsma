@@ -25,6 +25,7 @@ int main(void)
 		if (res.error) {
 			puts(res.error);
 			free(res.error);
+			parser_destroy(&parser);
 			continue;
 		}
 
