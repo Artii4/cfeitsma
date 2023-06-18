@@ -26,13 +26,8 @@ struct ast *ast_create(enum ast_type type)
 
 	*ast = (struct ast) {
 		.type = type,
-		.children = array_create(sizeof(struct ast *))
+		.children = array_create_ast_p()
 	};
-
-	if (ast->children == NULL) {
-		free(ast);
-		return NULL;
-	}
 
 	return ast;
 }
@@ -46,13 +41,8 @@ struct ast *ast_create_name(char *name_value)
 	*ast = (struct ast) {
 		.type = ast_name,
 		.name_value = name_value,
-		.children = array_create(sizeof(struct ast *))
+		.children = array_create_ast_p()
 	};
-
-	if (ast->children == NULL) {
-		free(ast);
-		return NULL;
-	}
 
 	return ast;
 }
@@ -66,25 +56,18 @@ struct ast *ast_create_number(double number_value)
 	*ast = (struct ast) {
 		.type = ast_number,
 		.number_value = number_value,
-		.children = array_create(sizeof(struct ast *))
+		.children = array_create_ast_p()
 	};
-
-	if (ast->children == NULL) {
-		free(ast);
-		return NULL;
-	}
 
 	return ast;
 }
 
 void ast_destroy(struct ast *a)
 {
-	for (size_t i = 0; i < a->children->nelts; i++) {
-		struct ast **children = a->children->elts;
-		ast_destroy(children[i]);
-	}
+	for (size_t i = 0; i < a->children.nelts; i++)
+		ast_destroy(a->children.elts[i]);
 
-	array_destroy(a->children);
+	array_destroy_ast_p(a->children);
 
 	if (a->type == ast_name)
 		free(a->name_value);
@@ -108,23 +91,21 @@ static char *ast_single_to_string(struct ast *a)
 
 void ast_add_child(struct ast *a, struct ast *child)
 {
-	*(struct ast **)array_push(a->children) = child;
+	*array_push_ast_p(&a->children) = child;
 }
 
 char *ast_to_string(struct ast *a)
 {
 	char *single = ast_single_to_string(a);
-	if (a->children->nelts == 0)
+	if (a->children.nelts == 0)
 		return single;
 
-	struct ast **children = a->children->elts;
-
 	char *children_str = strdup("");
-	for (size_t i = 0; i < a->children->nelts; i++) {
+	for (size_t i = 0; i < a->children.nelts; i++) {
 		char *old = children_str;
-		char *new = ast_to_string(children[i]);
+		char *new = ast_to_string(a->children.elts[i]);
 
-		if (i == a->children->nelts - 1)
+		if (i == a->children.nelts - 1)
 			asprintf(&children_str, "%s%s", children_str, new);
 		else
 			asprintf(&children_str, "%s%s, ", children_str, new);

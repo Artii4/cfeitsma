@@ -2,25 +2,24 @@
 
 #include "array.h"
 
+array_all_declare(struct ast *, ast_p)
+
 enum ast_type {
 	ast_plus,
 	ast_minus,
 	ast_star,
 	ast_slash,
-
 	ast_number,
 	ast_name,
 	ast_het,
-
 	ast_print,
 	ast_assign,
-
 	ast_program
 };
 
 struct ast {
 	enum ast_type type;
-	struct array *children;
+	struct array_ast_p children;
 	union {
 		double number_value;
 		char *name_value;

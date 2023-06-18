@@ -6,11 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct variable {
-	char *name;
-	double value;
-};
-
 static void interpreter_statement(struct interpreter *self, struct ast *ast);
 static void interpreter_assign(struct interpreter *self, struct ast *ast);
 static void interpreter_print(struct interpreter *self, struct ast *ast);
@@ -21,7 +16,7 @@ struct interpreter interpreter_create(FILE *output)
 {
 	return (struct interpreter) {
 		.output = output,
-		.variables = array_create(sizeof(struct variable)),
+		.variables = array_create_variable(),
 		.error = NULL,
 		.last_var = -1
 	};
@@ -29,10 +24,10 @@ struct interpreter interpreter_create(FILE *output)
 
 void interpreter_destroy(struct interpreter *self)
 {
-	for (size_t i = 0; i < self->variables->nelts; i++)
-		free(((struct variable *)self->variables->elts)[i].name);
+	for (size_t i = 0; i < self->variables.nelts; i++)
+		free(self->variables.elts[i].name);
 
-	array_destroy(self->variables);
+	array_destroy_variable(self->variables);
 	free(self->error);
 }
 
@@ -40,9 +35,8 @@ void interpreter_interpret(struct interpreter *self, struct ast *ast)
 {
 	free(self->error);
 	self->error = NULL;
-	for (size_t i = 0; i < ast->children->nelts; i++) {
-		struct ast **c = ast->children->elts;
-		interpreter_statement(self, c[i]);
+	for (size_t i = 0; i < ast->children.nelts; i++) {
+		interpreter_statement(self, ast->children.elts[i]);
 		if (self->error)
 			return;
 	}
@@ -60,8 +54,7 @@ static void interpreter_statement(struct interpreter *i, struct ast *ast)
 
 static void interpreter_print(struct interpreter *self, struct ast *ast)
 {
-	struct ast **c = ast->children->elts;
-	double n = interpreter_expression(self, c[0]);
+	double n = interpreter_expression(self, ast->children.elts[0]);
 	if (self->error)
 		return;
 
@@ -70,37 +63,32 @@ static void interpreter_print(struct interpreter *self, struct ast *ast)
 
 static void interpreter_assign(struct interpreter *self, struct ast *ast)
 {
-	struct ast **c = ast->children->elts;
 	char *name;
 
-	if (c[0]->type == ast_name) {
-		name = c[0]->name_value;
-	} else if (c[0]->type == ast_het) {
+	if (ast->children.elts[0]->type == ast_name) {
+		name = ast->children.elts[0]->name_value;
+	} else if (ast->children.elts[0]->type == ast_het) {
 		if (self->last_var < 0) {
 			self->error = strdup("\"het\" is invalid here");
 			return;
 		}
-		struct variable *vars = self->variables->elts;
-		name = vars[self->last_var].name;
+		name = self->variables.elts[self->last_var].name;
 	}
 
-	double value = interpreter_expression(self, c[1]);
+	double value = interpreter_expression(self, ast->children.elts[1]);
 
 	if (self->error)
 		return;
 
-	struct variable *vars = self->variables->elts;
-
-	for (size_t i = 0; i < self->variables->nelts; i++) {
-		if (strcmp(vars[i].name, name) == 0) {
-			vars[i].value = value;
+	for (size_t i = 0; i < self->variables.nelts; i++) {
+		if (strcmp(self->variables.elts[i].name, name) == 0) {
+			self->variables.elts[i].value = value;
 			self->last_var = i;
 		}
 	}
 
-	self->last_var = self->variables->nelts;
-	*(struct variable *)array_push(self->variables) =
-	    (struct variable) { strdup(name), value };
+	self->last_var = self->variables.nelts;
+	*array_push_variable(&self->variables) = (struct variable) { strdup(name), value };
 }
 
 static double interpreter_expression(struct interpreter *self, struct ast *ast)
@@ -114,15 +102,13 @@ static double interpreter_expression(struct interpreter *self, struct ast *ast)
 			self->error = strdup("\"het\" is invalid here");
 			return 0;
 		}
-		struct variable *vars = self->variables->elts;
-		return vars[self->last_var].value;
+		return self->variables.elts[self->last_var].value;
 	}
 
-	struct ast **children = ast->children->elts;
-	double left = interpreter_expression(self, children[0]);
+	double left = interpreter_expression(self, ast->children.elts[0]);
 	if (self->error)
 		return 0;
-	double right = interpreter_expression(self, children[1]);
+	double right = interpreter_expression(self, ast->children.elts[1]);
 	if (self->error)
 		return 0;
 
@@ -137,10 +123,9 @@ static double interpreter_expression(struct interpreter *self, struct ast *ast)
 
 static double interpreter_name(struct interpreter *self, struct ast *ast)
 {
-	struct variable *vars = self->variables->elts;
-	for (size_t i = 0; i < self->variables->nelts; i++) {
-		if (strcmp(vars[i].name, ast->name_value) == 0)
-			return vars[i].value;
+	for (size_t i = 0; i < self->variables.nelts; i++) {
+		if (strcmp(self->variables.elts[i].name, ast->name_value) == 0)
+			return self->variables.elts[i].value;
 	}
 
 	asprintf(&self->error, "variable named \"%s\" doesn't exist",

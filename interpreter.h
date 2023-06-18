@@ -3,9 +3,16 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+struct variable {
+	char *name;
+	double value;
+};
+
+array_all_declare(struct variable, variable)
+
 struct interpreter {
 	FILE *output;
-	struct array *variables;
+	struct array_variable variables;
 	char *error;
 	int last_var;
 };
