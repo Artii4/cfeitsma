@@ -22,7 +22,7 @@ static void parser_consume(struct parser *self);
 static bool parser_expect(struct parser *self, enum token_type type);
 static struct parser_result parser_program(struct parser *self);
 static struct parser_result parser_statement(struct parser *self);
-static struct parser_result parser_assignment(struct parser *self);
+static struct parser_result parser_assign(struct parser *self);
 static struct parser_result parser_print(struct parser *self);
 static struct parser_result parser_expression(struct parser *self, int min_bp);
 static struct parser_result parser_primary(struct parser *self);
@@ -136,7 +136,7 @@ static struct parser_result parser_statement(struct parser *self)
 	struct parser_result result;
 
 	if (self->lookahead.type == token_laat)
-		result = parser_assignment(self);
+		result = parser_assign(self);
 	else if (self->lookahead.type == token_print)
 		result = parser_print(self);
 	else
@@ -153,7 +153,7 @@ static struct parser_result parser_statement(struct parser *self)
 	return result;
 }
 
-static struct parser_result parser_assignment(struct parser *self)
+static struct parser_result parser_assign(struct parser *self)
 {
 	if (!parser_expect(self, token_laat))
 		return parser_error_type(self, token_laat);
