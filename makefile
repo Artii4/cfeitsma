@@ -1,4 +1,5 @@
-CFLAGS = -std=c11 -Wall -Wextra -pedantic -Os
+CFLAGS = -std=c11 -Wall -Wextra -Os
+CC = clang
 
 main: main.c token.c lexer.c ast.c interpreter.c parser.c
 test: test.c token.c lexer.c ast.c parser.c

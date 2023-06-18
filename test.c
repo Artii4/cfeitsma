@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "array.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -45,6 +46,8 @@ bool parser_gives(char *input, char *ast)
 	return true;
 }
 
+array_all_declare(int, int)
+
 int main(void)
 {
 	assert(parser_errs("laat x 2 + laat zijn;"));
@@ -62,6 +65,11 @@ int main(void)
 			    "program (print (+ (2.00000, 2.00000)))"));
 	assert(parser_gives("laat tau pi * pi zijn;",
 			    "program (= (\"tau\", * (\"pi\", \"pi\")))"));
+
+	struct array_int a = array_create_int();
+	assert(array_push_int(&a) == a.elts);
+	assert(a.nelts == 1);
+	array_destroy_int(a);
 
 	puts("Tests passed.");
 }

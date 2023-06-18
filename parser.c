@@ -18,10 +18,8 @@ static struct parser_result parser_result_create_error(char *e);
 static struct parser_result parser_error(struct parser *self, char const *want);
 static struct parser_result parser_error_lookahead(struct parser *self);
 static struct parser_result parser_error_type(struct parser *self, enum token_type t);
-
 static void parser_consume(struct parser *self);
 static bool parser_expect(struct parser *self, enum token_type type);
-
 static struct parser_result parser_program(struct parser *self);
 static struct parser_result parser_statement(struct parser *self);
 static struct parser_result parser_assignment(struct parser *self);

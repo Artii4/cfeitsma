@@ -99,16 +99,15 @@ static void interpreter_assign(struct interpreter *self, struct ast *ast)
 
 static double interpreter_expression(struct interpreter *self, struct ast *ast)
 {
-	if (ast->type == ast_name) {
-		return interpreter_name(self, ast);
-	} else if (ast->type == ast_number) {
-		return ast->number_value;
-	} else if (ast->type == ast_het) {
-		if (self->last_var < 0) {
-			self->error = strdup("\"het\" is invalid here");
-			return 0;
-		}
-		return self->variables.elts[self->last_var].value;
+	switch(ast->type) {
+	case ast_name: return interpreter_name(self, ast);
+	case ast_number: return ast->number_value;
+	case ast_het:
+		if (self->last_var >= 0)
+			return self->variables.elts[self->last_var].value;
+
+		self->error = strdup("\"het\" is invalid here");
+		return 0;
 	}
 
 	double left = interpreter_expression(self, ast->children.elts[0]);
@@ -134,7 +133,6 @@ static double interpreter_name(struct interpreter *self, struct ast *ast)
 			return self->variables.elts[i].value;
 	}
 
-	asprintf(&self->error, "variable named \"%s\" doesn't exist",
-		 ast->name_value);
+	asprintf(&self->error, "variable named \"%s\" doesn't exist", ast->name_value);
 	return -1;
 }
