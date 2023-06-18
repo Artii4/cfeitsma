@@ -28,30 +28,14 @@ struct token lexer_next_token(struct lexer *l)
 	enum token_type type;
 
 	switch (lexer_peek(l)) {
-	case '+':
-		type = token_plus;
-		break;
-	case '-':
-		type = token_minus;
-		break;
-	case '*':
-		type = token_star;
-		break;
-	case '/':
-		type = token_slash;
-		break;
-	case '(':
-		type = token_lparen;
-		break;
-	case ')':
-		type = token_rparen;
-		break;
-	case ';':
-		type = token_semicolon;
-		break;
-	case '\0':
-		type = token_end;
-		break;
+	case '+': type = token_plus; break;
+	case '-': type = token_minus; break;
+	case '*': type = token_star; break;
+	case '/': type = token_slash; break;
+	case '(': type = token_lparen; break;
+	case ')': type = token_rparen; break;
+	case ';': type = token_semicolon; break;
+	case '\0': type = token_end; break;
 	default:
 		if (isdigit(lexer_peek(l))) {
 			return lexer_number(l);
@@ -59,8 +43,7 @@ struct token lexer_next_token(struct lexer *l)
 			return lexer_name(l);
 		} else {
 			char *error;
-			asprintf(&error, "Invalid character: '%c'",
-				 lexer_peek(l));
+			asprintf(&error, "Invalid character: '%c'", lexer_peek(l));
 			lexer_consume(l);
 			return token_create_error(error);
 		}
@@ -89,9 +72,7 @@ static struct token lexer_name(struct lexer *l)
 	for (int i = 0; isalpha(lexer_peek(l)); i++) {
 		if (i >= MAX_NAME_LENGTH) {
 			char *err;
-			asprintf(&err,
-				 "Name starting with \"%.10s\" is too long!",
-				 buf);
+			asprintf(&err, "Name starting with \"%.10s\" is too long!", buf);
 
 			while (isalpha(lexer_peek(l)))
 				lexer_consume(l);

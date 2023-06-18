@@ -127,16 +127,11 @@ static double interpreter_expression(struct interpreter *self, struct ast *ast)
 		return 0;
 
 	switch (ast->type) {
-	case ast_plus:
-		return left + right;
-	case ast_minus:
-		return left - right;
-	case ast_star:
-		return left * right;
-	case ast_slash:
-		return left / right;
-	default:
-		assert(false);
+	case ast_plus: return left + right;
+	case ast_minus: return left - right;
+	case ast_star: return left * right;
+	case ast_slash: return left / right;
+	default: assert(false);
 	}
 }
 

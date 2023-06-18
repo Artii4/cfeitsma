@@ -61,41 +61,23 @@ char *token_to_string(struct token token)
 char const *token_type_to_string(enum token_type type)
 {
 	switch (type) {
-	case token_plus:
-		return "+";
-	case token_minus:
-		return "-";
-	case token_star:
-		return "*";
-	case token_slash:
-		return "/";
-	case token_semicolon:
-		return ";";
-	case token_lparen:
-		return "(";
-	case token_rparen:
-		return ")";
-	case token_number:
-		return "number";
-	case token_name:
-		return "name";
-	case token_laat:
-		return "laat";
-	case token_het:
-		return "het";
-	case token_zijn:
-		return "zijn";
-	case token_print:
-		return "print";
-	case token_uit:
-		return "uit";
-	case token_en:
-		return "en";
-	case token_end:
-		return "end";
-	case token_none:
-		return "none";
-	default:
-		assert(false);
+	case token_plus: return "+";
+	case token_minus: return "-";
+	case token_star: return "*";
+	case token_slash: return "/";
+	case token_semicolon: return ";";
+	case token_lparen: return "(";
+	case token_rparen: return ")";
+	case token_number: return "number";
+	case token_name: return "name";
+	case token_laat: return "laat";
+	case token_het: return "het";
+	case token_zijn: return "zijn";
+	case token_print: return "print";
+	case token_uit: return "uit";
+	case token_en: return "en";
+	case token_end: return "end";
+	case token_none: return "none";
+	default: assert(false);
 	}
 }
