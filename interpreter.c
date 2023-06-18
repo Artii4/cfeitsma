@@ -6,6 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+array_create_declare(struct variable, variable)
+array_destroy_declare(struct variable, variable)
+array_push_declare(struct variable, variable)
+
 static void interpreter_statement(struct interpreter *self, struct ast *ast);
 static void interpreter_assign(struct interpreter *self, struct ast *ast);
 static void interpreter_print(struct interpreter *self, struct ast *ast);
@@ -73,6 +77,8 @@ static void interpreter_assign(struct interpreter *self, struct ast *ast)
 			return;
 		}
 		name = self->variables.elts[self->last_var].name;
+	} else {
+		assert(false);
 	}
 
 	double value = interpreter_expression(self, ast->children.elts[1]);

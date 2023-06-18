@@ -5,6 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+array_create_declare(struct ast *, ast_p)
+array_destroy_declare(struct ast *, ast_p)
+array_push_declare(struct ast *, ast_p)
+
 static const char *const ast_type_to_string[] = {
 	[ast_plus] = "+",
 	[ast_minus] = "-",

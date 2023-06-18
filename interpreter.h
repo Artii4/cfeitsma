@@ -8,7 +8,7 @@ struct variable {
 	double value;
 };
 
-array_all_declare(struct variable, variable)
+array_declare(struct variable, variable)
 
 struct interpreter {
 	FILE *output;

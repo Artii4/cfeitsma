@@ -2,7 +2,7 @@
 
 #include "array.h"
 
-array_all_declare(struct ast *, ast_p)
+array_declare(struct ast *, ast_p)
 
 enum ast_type {
 	ast_plus,

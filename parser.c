@@ -285,6 +285,8 @@ static struct parser_result parser_expression(struct parser *self,
 			op = ast_create(ast_star);
 		else if (self->lookahead.type == token_slash)
 			op = ast_create(ast_slash);
+		else
+			assert(false);
 
 		parser_consume(self);
 
