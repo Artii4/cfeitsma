@@ -11,7 +11,7 @@
 	};
 
 #define array_create_declare(t, suf)						\
-	static struct array_##suf array_create_##suf()					\
+	static struct array_##suf array_create_##suf()				\
 	{									\
 		return (struct array_##suf) {					\
 			.nelts = 0,						\
@@ -21,13 +21,13 @@
 	}
 
 #define array_destroy_declare(t, suf)						\
-	static void array_destroy_##suf(struct array_##suf self)			\
+	static void array_destroy_##suf(struct array_##suf self)		\
 	{									\
 		free(self.elts);						\
 	}
 
-#define array_push_declare(t, suf)							\
-	static t *array_push_##suf(struct array_##suf *self)				\
+#define array_push_declare(t, suf)						\
+	static t *array_push_##suf(struct array_##suf *self)			\
 	{									\
 		if (self->nelts >= self->nalloc) {				\
 			size_t const nmem = sizeof(t) * self->nelts * 2;	\
